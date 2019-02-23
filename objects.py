@@ -13,8 +13,8 @@ class counter(pygame.sprite.Sprite):
 class chair(pygame.sprite.Sprite):
     def __init__(self, pos):
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.surface.Surface([75, 75])
-        self.image.fill([200, 200, 200])
+        self.image = pygame.image.load("./images/seat.png")
+        self.image = pygame.transform.scale(self.image, [75, 75])
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = list(pos)
 
