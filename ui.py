@@ -43,3 +43,18 @@ class bigbutton(pygame.sprite.Sprite):
 
     def color(self, color):
         self.image = self.font.render(self.text, 1, list(color))
+
+class imagebutton(pygame.sprite.Sprite):
+    def __init__(self, image, pos):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load("./images/"+str(image))
+        #self.image = pygame.transform.scale(self.image, list(size))
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = list(pos)
+    def click(self, mouse):
+        clicked = False
+        if self.rect.collidepoint(mouse):
+            clicked = True
+        return clicked
+    def draw(self, surf):
+        surf.blit(self.image, [self.rect.left, self.rect.top])
