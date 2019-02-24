@@ -5,34 +5,55 @@ import ui, entities, objects #Project Libraries
 
 #VARIABLE DECLARATIONS
 pygame.init()
+pygame.mixer.init()
 window = pygame.display.set_mode([800, 600])
 pygame.display.set_caption("juicyZESTYbitterSWEET")
 running = True
 mouse = [0, 0]
 screen = "intro"
 player = entities.player([380, 280])
-play = ui.button("Play Game", [10, 60])
-howto = ui.button("How to Play", [10, 90])
-quitbutton = ui.button("Quit Game", [10, 120])
-juicy = ui.button("Juicy", [10, 100])
-zesty = ui.button("Zesty", [10, 160])
-bitter = ui.button("Bitter", [10, 220])
-sweet = ui.button("Sweet", [10, 280])
+play = ui.button("Play Game", [349, 505])
+howto = ui.button("How to Play", [344, 535])
+quitbutton = ui.button("Quit Game", [350, 565])
+juicy = ui.button("Juicy", [50, 100])
+zesty = ui.button("Zesty", [50, 160])
+bitter = ui.button("Bitter", [50, 220])
+sweet = ui.button("Sweet", [50, 280])
 cookbutton = ui.bigbutton("Cook 'n Cast!", [283, 550])
 back = ui.button("Back", [5, 5])
+nextday = ui.button("Next Day", [356, 400])
+replayday = ui.button("Replay Day", [345, 430])
+reset = ui.button("Reset Spells", [10, 340])
+mainmenu = ui.button("Main Menu", [346, 460])
+nextday.color([255, 255, 255])
+replayday.color([255, 255, 255])
+mainmenu.color([255, 255, 255])
 food = {"burger":[3, 1, 1, 0], "tacos":[3, 2, 0, 1], "fries":[2, 3, 1, 0], "cupcake":[0, 0, 0, 4], "sushi":[2, 3, 1, 1]}
 foodimages = {"burger":pygame.image.load("./images/food/burger.png"),"tacos":pygame.image.load("./images/food/taco.png"),"fries":pygame.image.load("./images/food/fries.png"),"cupcake":pygame.image.load("./images/food/cupcake.png"),
               "sushi": pygame.image.load("./images/food/sushi.png")}
 currentfood = {"name":None,"recipe":[0, 0, 0, 0]}
+background = pygame.mixer.Channel(0)
+sounds = [pygame.mixer.Sound("./sfx/backgroundnoise.wav"), pygame.mixer.Sound("./sfx/3peopletalking.wav"), pygame.mixer.Sound("./sfx/morebackgroundnoise.wav"), pygame.mixer.Sound("./sfx/peopletalking.wav")]
 recipe = [0, 0, 0, 0]
+dinerphotos = [pygame.image.load("./images/diner-photos/IMG_1775.JPG"), pygame.image.load("./images/diner-photos/IMG_1777.JPG"), pygame.image.load("./images/diner-photos/IMG_1781.JPG")]
+dinerphoto = pygame.transform.scale(random.choice(dinerphotos), [800, 600])
 seats = [False, False, False, False]
 order = None
 data = {"rating":None}
 currentorder = None
+comment = None
 currenttable = 0
-gametime = 15
+gametime = 9
+day = 1
 money = 100
+goal = 50
+goals = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
+profit = 0
 pos = [0, 0]
+titlebox = pygame.image.load("./images/titlebox.png")
+logo = pygame.image.load("./images/logo.png")
+potion = pygame.image.load("./images/potion.png")
+potion = pygame.transform.scale(potion, [40, 40])
 bkg = pygame.image.load("./images/floor.png")
 infobox = pygame.image.load("./images/infobox.png")
 infobox = pygame.transform.scale(infobox, [360, 100])
@@ -55,14 +76,16 @@ for i in range(4):
     chairs.add(objects.chair([600, (i * 120) + 25]))
 
 def update(action):
-    global data, mouse, currentorder, money
+    global data, mouse, currentorder, money, goal, profit
     if action == "serve":
-        data = {"order": currentorder, "food": currentfood, "table": currenttable, "seats":seats, "rating":None, "tip":None}
+        data = {"order": currentorder, "food": currentfood, "table": currenttable, "seats":seats, "rating":None, "tip":None, "comment":None}
     else:
         data = {"order": None, "seats":seats, "tip":None, "rating":None}
     customers.update(str(action), mouse, data)
     if not data["tip"] == None:
         money += data["tip"]
+        profit += data["tip"]
+        goal -= data["tip"]
 
 def intro():
     window.fill([0, 0, 0])
@@ -74,10 +97,12 @@ def intro():
     time.sleep(2)
 
 def menu():
-    window.fill([255, 255, 255])
-    font = pygame.font.Font("./font/Lobster_1.3.otf", 48)
-    render = font.render("juicy ZESTY bitter SWEET", 1, [0, 0, 0])
-    window.blit(render, [5, 5])
+    window.fill([0, 0, 0])
+    window.blit(dinerphoto, [0, 0])
+    window.blit(titlebox, [0, 2])
+    window.blit(logo, [45, -133])
+    window.blit(infobox, [220, 500])
+    font = pygame.font.Font("./font/Lobster_1.3.otf", 24)
     play.draw(window)
     quitbutton.draw(window)
     howto.draw(window)
@@ -94,17 +119,20 @@ def drawObjects():
     customers.draw(window)
     font = pygame.font.Font("./font/Lobster_1.3.otf", 24)
     window.blit(infobox, [125, 2])
-    render = font.render("Money: $" + str(money), 1, [0, 0, 0])
+    render = font.render("Money: $" + str(money) + " - Goal: Earn $" + str(goal), 1, [0, 0, 0])
     window.blit(render, [135, 10])
     if gametime < 12:
-        render = font.render("Time: " + str(gametime) + ":00 AM", 1, [0, 0, 0])
+        render = font.render("Time: " + str(gametime) + ":00 AM - Day " + str(day), 1, [0, 0, 0])
     elif gametime == 12:
-        render = font.render("Time: 12:00 PM", 1, [0, 0, 0])
+        render = font.render("Time: 12:00 PM - Day " + str(day), 1, [0, 0, 0])
     else:
-        render = font.render("Time: " + str(gametime - 12) + ":00 PM", 1, [0, 0, 0])
+        render = font.render("Time: " + str(gametime - 12) + ":00 PM - Day " + str(day), 1, [0, 0, 0])
     window.blit(render, [135, 40])
     if not currentorder == None:
         render = font.render(currentorder.capitalize() + " for Customer #" + str(currenttable), 1, [0, 0, 0])
+        window.blit(render, [135, 70])
+    elif currentorder == None and not comment == None:
+        render = font.render("Customer says: " + str(comment), 1, [0, 0, 0])
         window.blit(render, [135, 70])
 
 def newCustomer():
@@ -148,33 +176,86 @@ def showRating():
 
 def cookScreen():
     global window, spellcounter
+    window.fill([200, 200, 200])
     table = pygame.surface.Surface([800, 200])
     table.fill([163, 77, 0])
     window.blit(table, [0, 400])
+    window.blit(potion, [5, 80])
     juicy.draw(window)
+    window.blit(potion, [5, 140])
     zesty.draw(window)
+    window.blit(potion, [5, 200])
     bitter.draw(window)
+    window.blit(potion, [5, 260])
     sweet.draw(window)
     back.draw(window)
     cookbutton.draw(window)
+    reset.draw(window)
     if not currentorder == None:
-        window.blit(foodimages[currentorder], [370, 100])
+        window.blit(foodimages[currentorder], [380, 100])
     for i in range(recipe[0]):
-        window.blit(spellcounter, [(i * 75) + 75, 75])
+        window.blit(spellcounter, [(i * 75) + 110, 75])
     for i in range(recipe[1]):
-        window.blit(spellcounter, [(i * 75) + 75, 160 - 25])
+        window.blit(spellcounter, [(i * 75) + 110, 160 - 25])
     for i in range(recipe[2]):
-        window.blit(spellcounter, [(i * 75) + 75, 220 - 25])
+        window.blit(spellcounter, [(i * 75) + 110, 220 - 25])
     for i in range(recipe[3]):
-        window.blit(spellcounter, [(i * 75) + 75, 280 - 25])
+        window.blit(spellcounter, [(i * 75) + 110, 280 - 25])
+
+def endScreen():
+    global window, day
+    bigfont = pygame.font.Font("./font/Lobster_1.3.otf", 48)
+    font = pygame.font.Font("./font/Lobster_1.3.otf", 24)
+    render = bigfont.render("Day " + str(day) + " Completed!", 1, [255, 255, 255])
+    position = 400 - (render.get_rect().width/2)
+    window.blit(render, [position, 100])
+    if goal == 0:
+        render = font.render("Goal Completed!", 1, [255, 255, 255])
+    else:
+        render = font.render("Goal Failed...", 1, [255, 255, 255])
+    position = 400 - (render.get_rect().width / 2)
+    window.blit(render, [position, 150])
+    render = font.render("Today's Profit: $" + str(profit), 1, [255, 255, 255])
+    position = 400 - (render.get_rect().width / 2)
+    window.blit(render, [position, 190])
+    render = font.render("Overall Cash: $" + str(money), 1, [255, 255, 255])
+    position = 400 - (render.get_rect().width / 2)
+    window.blit(render, [position, 220])
+    if goal == 0:
+        nextday.draw(window)
+    replayday.draw(window)
+    mainmenu.draw(window)
 
 def night():
     global time
     if gametime > 15:
         surface = pygame.surface.Surface([800, 600])
         surface.fill([0, 0, 0])
-        surface.set_alpha(1500) #(100 * i) -
+        surface.set_alpha((100 * i) - 1500)
         window.blit(surface, [0, 0])
+
+def countCustomers():
+    global seats
+    customercount = 0
+    if seats[0]:
+        customercount += 1
+    if seats[1]:
+        customercount += 1
+    if seats[2]:
+        customercount += 1
+    if seats[3]:
+        customercount += 1
+    return customercount
+
+def backgroundNoise():
+    global background, sounds
+    if not background.get_busy():
+        if countCustomers() > 0 and countCustomers() <= 2:
+            background.play(sounds[0])
+        elif countCustomers() == 3:
+            background.play(sounds[random.randint(1, 2)])
+        elif countCustomers() == 4:
+            background.play(sounds[3])
 
 while running:
     for event in pygame.event.get():
@@ -192,6 +273,16 @@ while running:
                     if quitbutton.click(mouse):
                         running = False
                         quitbutton.reset()
+                    if howto.click(mouse):
+                        screen = "how-to"
+                        back.color([255, 255, 255])
+                        howto.reset()
+                elif screen == "how-to":
+                    if back.click(mouse):
+                        screen = "menu"
+                        back.color([0, 0, 0])
+                        back.reset()
+                        dinerphoto = pygame.transform.scale(random.choice(dinerphotos), [800, 600])
                 elif screen == "game":
                     if currentorder == None:
                         update("click")
@@ -206,16 +297,18 @@ while running:
                         if not data["rating"] == None:
                             currentfood = {"name": None, "recipe": [0, 0, 0, 0]}
                             currentorder = None
+                            if not data["comments"] == None:
+                                comment = data["comments"]
                             currenttable = 0
                             pygame.time.set_timer(pygame.USEREVENT + 1, 3000)
 
                     if stove.click(mouse) and not currentorder == None:
                         screen = "cook"
                         recipe = [0, 0, 0, 0]
-                    if board.click(mouse) and not currentorder == None:
+                    elif board.click(mouse) and not currentorder == None:
                         screen = "cook"
                         recipe = [0, 0, 0, 0]
-                    if oven.click(mouse) and not currentorder == None:
+                    elif oven.click(mouse) and not currentorder == None:
                         screen = "cook"
                         recipe = [0, 0, 0, 0]
                 elif screen == "cook":
@@ -239,7 +332,35 @@ while running:
                         currentfood["recipe"] = recipe
                         screen = "game"
                         cookbutton.reset()
-                        print currentfood
+                    elif reset.click(mouse):
+                        recipe = [0, 0, 0, 0]
+                        reset.reset()
+                elif screen == "day-end":
+                    if replayday.click(mouse):
+                        screen = "game"
+                        goal = goals[day - 1]
+                        profit = 0
+                        gametime = 9
+                        customers.empty()
+                        newCustomer()
+                        replayday.reset()
+                    if nextday.click(mouse) and goal == 0:
+                        screen = "game"
+                        day += 1
+                        gametime = 9
+                        goal = goals[day - 1]
+                        profit = 0
+                        customers.empty()
+                        newCustomer()
+                        nextday.reset()
+                    if mainmenu.click(mouse):
+                        screen = "menu"
+                        gametime = 9
+                        goal = goals[day - 1]
+                        profit = 0
+                        customers.empty()
+                        mainmenu.reset()
+                        dinerphoto = pygame.transform.scale(random.choice(dinerphotos), [800, 600])
             if pressed[2]:
                 if screen == "game":
                     update("click")
@@ -247,13 +368,21 @@ while running:
                         order = data["order"]
                         customerpos = data["pos"]
                         pygame.time.set_timer(pygame.USEREVENT + 1, 3000)
+
         if event.type == pygame.KEYDOWN:
             pressed = pygame.key.get_pressed()
+            if screen == "game":
+                if pressed[pygame.K_ESCAPE]:
+                    print "pause menu goes here"
+                elif pressed[pygame.K_x]:
+                    currentorder = None
+                    currenttable = 0
         if event.type == pygame.USEREVENT and bool(screen == "game" or screen == "cook"):
             newCustomer()
         if event.type == pygame.USEREVENT + 1:
             order = None
             update("leave")
+            comment = None
         if event.type == pygame.USEREVENT + 2:
             gametime += 1
             if gametime == 21:
@@ -266,16 +395,26 @@ while running:
         menu()
     elif screen == "game":
         window.fill([255, 255, 255])
+        if goal <= 0:
+            goal = 0
+            screen = "day-end"
+            background.fadeout(1000)
         drawObjects()
         player.draw(window)
         showOrder()
         if not data["rating"] == None:
             showRating()
+        night()
+        backgroundNoise()
     elif screen == "cook":
         window.fill([255, 255, 255])
         cookScreen()
+        backgroundNoise()
     elif screen == "day-end":
         window.fill([0, 0, 0])
-        night()
+        endScreen()
+    elif screen == "how-to":
+        window.fill([0, 0, 0])
+        back.draw(window)
     pygame.display.flip()
 pygame.quit()
